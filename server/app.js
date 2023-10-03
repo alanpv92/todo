@@ -8,6 +8,9 @@ async function main() {
   const port = process.env.SERVER_PORT || 5000;
   try {
     db.initDatabaseFromEnv();
+    const data=await db.query("select * from users");
+    console.log(data.row);
+   
     app.listen(port, () => {
       console.log(`server is running at ${port}`);
     });
@@ -15,6 +18,7 @@ async function main() {
     if (e instanceof DatabaseConnectionError) {
       console.log("could not connect to database");
     }
+    console.log(e);
   }
 }
 

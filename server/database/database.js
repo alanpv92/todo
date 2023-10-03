@@ -42,6 +42,7 @@ class Database {
       const data = await this.pool.query(queryString);
       return data;
     } catch (e) {
+      console.log(e);
       throw new DatabaseError.DatabaseQueryError();
     }
   }

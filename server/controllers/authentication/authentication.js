@@ -1,7 +1,11 @@
 const userRepository = require("../../database/repository/user");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { UserAlreadyRegistredError } = require("./errors");
+const {
+  UserAlreadyRegistredError,
+  UserHasNotRegistredError,
+  UserHasEnterWrongPasswordError,
+} = require("./errors");
 const texts = require("../../constants/texts");
 const { DataBaseUniqueConstrainError } = require("../../database/errors");
 
@@ -9,6 +13,12 @@ class AuthenticationController {
   static resolveError(errorInstance) {
     if (errorInstance instanceof UserAlreadyRegistredError) {
       return texts.userAlreadyRegistredError;
+    }
+    if (errorInstance instanceof UserHasNotRegistredError) {
+      return texts.userHasNotRegistred;
+    }
+    if (errorInstance instanceof UserHasEnterWrongPasswordError) {
+      return texts.userHasEnterWrongPassword;
     }
     if (errorInstance instanceof DataBaseUniqueConstrainError) {
       if (errorInstance.constraint === "users_user_name_key") {
@@ -29,8 +39,37 @@ class AuthenticationController {
     return hashedData;
   }
 
-  loginUser(req, res) {
-    res.send("hello world");
+  async loginUser(req, res) {
+    try {
+      const { email, password } = req.body;
+      const userData = await userRepository.findUserByEmail(email);
+      if (userData.rowCount === 0) {
+        throw new UserHasNotRegistredError();
+      }
+      const user = userData.rows[0];
+      const isPasswordOk = await bcrypt.compare(password, user.password_hash);
+      if (!isPasswordOk) {
+        throw new UserHasEnterWrongPasswordError();
+      }
+      res.json({
+        status: "ok",
+        data: {
+          user_name: user.user_name,
+          email: email,
+          is_email_verified:user.is_email_verified,
+          token: AuthenticationController.generateToken({
+            userId: user.id,
+            email: email,
+          }),
+        },
+      });
+    } catch (e) {
+      console.log(e)
+      res.json({
+        status: "error",
+        message: AuthenticationController.resolveError(e),
+      });
+    }
   }
 
   async registerUser(req, res) {
@@ -61,13 +100,14 @@ class AuthenticationController {
         },
       });
     } catch (e) {
-     
       res.json({
         status: "error",
         message: AuthenticationController.resolveError(e),
       });
     }
   }
+
+
 }
 
 const authenticationController = new AuthenticationController();

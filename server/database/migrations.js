@@ -12,55 +12,34 @@ class DatabaseMigrationManager {
     `,
     ];
 
-    this.downMigrations = [
-      `
-        DROP TABLE USERS;
-        `,
-    ];
+    this.downMigrations = [`DROP TABLE IF EXISTS users;`];
+  }
+
+  async runMigrations(migrations) {
+    db.initDatabaseFromEnv();
+    const poolClient = await db.pool.connect();
+    try {
+      console.log("---------------starting migrations-----------");
+      await poolClient.query("BEGIN");
+      for (const migration of migrations) {
+        await poolClient.query(migration);
+      }
+      await poolClient.query("COMMIT");
+      console.log("Migrations completed successfully");
+    } catch (e) {
+      await poolClient.query("ROLLBACK");
+      console.error("Migrations failed:", e);
+    } finally {
+      console.log("releasing resoruces");
+      poolClient.release();
+    }
   }
 
   async startUpMigrations() {
-    db.initDatabaseFromEnv();
-    const poolClient = await db.pool.connect();
-    try {
-      console.log("starting migrations");
-
-      await poolClient.query("BEGIN");
-      for (const migration of this.upMigrations) {
-        await poolClient.query(migration);
-      }
-      await poolClient.query("COMMIT");
-      console.log("migrations done");
-      await poolClient.query(
-        "INSERT INTO USERS(user_name,email,password_hash) VALUES('alan','alan@gmail.com','asdasdasdasdasdas')"
-      );
-      const data = await poolClient.query("SELECT * FROM users");
-      console.log(data.rowCount);
-    } catch (e) {
-      await poolClient.query("ROLLBACK");
-      console.log("migrations failed");
-    } finally {
-      poolClient.release();
-    }
+    this.runMigrations(this.upMigrations);
   }
   async startDownMigrations() {
-    db.initDatabaseFromEnv();
-    const poolClient = await db.pool.connect();
-    try {
-      console.log("starting migrations");
-
-      await poolClient.query("BEGIN");
-      for (const migration of this.downMigrations) {
-        await poolClient.query(migration);
-      }
-      await poolClient.query("COMMIT");
-      console.log("migrations done");
-    } catch (e) {
-      await poolClient.query("ROLLBACK");
-      console.log("migrations failed");
-    } finally {
-      poolClient.release();
-    }
+    this.runMigrations(this.downMigrations);
   }
 }
 
@@ -76,8 +55,6 @@ async function startMigrations() {
   } else {
     console.log("please provide mirgraion");
   }
-
-  //   await migrationsManager.startDownMigrations();
 }
 
 startMigrations();

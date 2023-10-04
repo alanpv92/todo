@@ -1,5 +1,5 @@
 const db = require("../database");
-const { DatabaseQueryError } = require("../errors");
+
 
 class UserRepository {
   async findUserByEmail(email) {

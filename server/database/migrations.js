@@ -3,6 +3,7 @@ require("dotenv").config();
 class DatabaseMigrationManager {
   constructor() {
     this.upMigrations = [
+      /////////////////////////////////////////////////////////////////////////////
       `CREATE TABLE users (
         id SERIAL PRIMARY KEY,
         user_name VARCHAR(50) NOT NULL UNIQUE,
@@ -10,13 +11,29 @@ class DatabaseMigrationManager {
         password_hash VARCHAR(150) NOT NULL
     );
     `,
+      /////////////////////////////////////////////////////////////////////////////
       `
-    ALTER TABLE users ADD COLUMN is_email_verified BOOLEAN DEFAULT false;
+       ALTER TABLE users ADD COLUMN is_email_verified BOOLEAN DEFAULT false;
 
      `,
+      /////////////////////////////////////////////////////////////////////////////
+      `
+     CREATE TABLE user_otps(
+   
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+        otp_hash varchar(150)
+    
+    );
+     `,
+      /////////////////////////////////////////////////////////////////////////////
     ];
 
-    this.downMigrations = [`DROP TABLE IF EXISTS users;`];
+    this.downMigrations = [
+      `DROP TABLE IF EXISTS user_otps`,
+      `DROP TABLE IF EXISTS users;`
+    
+    ];
   }
 
   async runMigrations(migrations) {

@@ -27,24 +27,33 @@ class DatabaseMigrationManager {
     );
      `,
       /////////////////////////////////////////////////////////////////////////////
+
+      `
+      ALTER TABLE user_otps ADD CONSTRAINT unique_user_id UNIQUE(user_id) ;
+      `,
+      ////////////////////////////////////////////////////////////////////
     ];
 
     this.downMigrations = [
       `DROP TABLE IF EXISTS user_otps`,
-      `DROP TABLE IF EXISTS users;`
-    
+      `DROP TABLE IF EXISTS users;`,
     ];
   }
 
-  async runMigrations(migrations) {
+  async runMigrations(migrations, isLatest) {
     db.initDatabaseFromEnv();
     const poolClient = await db.pool.connect();
     try {
       console.log("---------------starting migrations-----------");
       await poolClient.query("BEGIN");
-      for (const migration of migrations) {
-        await poolClient.query(migration);
+      if (isLatest) {
+        await poolClient.query(migrations[migrations.length - 1]);
+      } else {
+        for (const migration of migrations) {
+          await poolClient.query(migration);
+        }
       }
+
       await poolClient.query("COMMIT");
       console.log("Migrations completed successfully");
     } catch (e) {
@@ -56,11 +65,11 @@ class DatabaseMigrationManager {
     }
   }
 
-  async startUpMigrations() {
-    this.runMigrations(this.upMigrations);
+  async startUpMigrations(isLatest) {
+    this.runMigrations(this.upMigrations, isLatest);
   }
-  async startDownMigrations() {
-    this.runMigrations(this.downMigrations);
+  async startDownMigrations(isLatest) {
+    this.runMigrations(this.downMigrations, isLatest);
   }
 }
 
@@ -69,7 +78,8 @@ async function startMigrations() {
   const migrationsManager = new DatabaseMigrationManager();
   if (args[0] == "up") {
     console.log("up migrations");
-    migrationsManager.startUpMigrations();
+
+    migrationsManager.startUpMigrations(args[1] === "latest");
   } else if (args[0] === "down") {
     console.log("down migrations");
     migrationsManager.startDownMigrations();

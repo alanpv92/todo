@@ -8,6 +8,8 @@ const {
 } = require("./errors");
 const texts = require("../../constants/texts");
 const { DataBaseUniqueConstrainError } = require("../../database/errors");
+const { CouldNotSendMail } = require("../../services/mail/error");
+const mailService = require("../../services/mail/mail");
 
 class AuthenticationController {
   static resolveError(errorInstance) {
@@ -16,6 +18,9 @@ class AuthenticationController {
     }
     if (errorInstance instanceof UserHasNotRegistredError) {
       return texts.userHasNotRegistred;
+    }
+    if (errorInstance instanceof CouldNotSendMail) {
+      return texts.couldNotSendMail;
     }
     if (errorInstance instanceof UserHasEnterWrongPasswordError) {
       return texts.userHasEnterWrongPassword;
@@ -39,6 +44,12 @@ class AuthenticationController {
     return hashedData;
   }
 
+  static generateRandom4DigitNumber() {
+    const randomNum = Math.floor(Math.random() * 10000);
+    const formattedNum = String(randomNum).padStart(4, "0");
+    return formattedNum;
+  }
+
   async loginUser(req, res) {
     try {
       const { email, password } = req.body;
@@ -56,7 +67,7 @@ class AuthenticationController {
         data: {
           user_name: user.user_name,
           email: email,
-          is_email_verified:user.is_email_verified,
+          is_email_verified: user.is_email_verified,
           token: AuthenticationController.generateToken({
             userId: user.id,
             email: email,
@@ -106,7 +117,31 @@ class AuthenticationController {
     }
   }
 
+  async startVerifyingMail(req, res) {
+    try {
+      const { email } = req.body;
 
+      const userData = await userRepository.findUserByEmail(email);
+      if (userData.rowCount == 0) {
+        throw new UserHasNotRegistredError();
+      }
+      const otp = AuthenticationController.generateRandom4DigitNumber();
+      const otphash = await AuthenticationController.hashPasswordAndOtp(otp);
+      await userRepository.insertOtp(userData.rows[0].id, otphash);
+
+      // await mailService.sendMail(email, otp);
+
+      res.json({
+        status: "ok",
+      });
+    } catch (e) {
+      console.log(e);
+      res.status(400).json({
+        status: "error",
+        message: AuthenticationController.resolveError(e),
+      });
+    }
+  }
 }
 
 const authenticationController = new AuthenticationController();

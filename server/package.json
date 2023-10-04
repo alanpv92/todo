@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon app.js",
     "migrate-up": "node database/migrations up",
-    "migrate-down": "node database/migrations down"
+    "migrate-down": "node database/migrations down",
+    "migrate-up-latest": "node database/migrations up latest"
   },
   "keywords": [],
   "author": "",

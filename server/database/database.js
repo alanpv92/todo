@@ -46,6 +46,9 @@ class Database {
       };
     } catch (e) {
       console.log(e);
+      if(e.code==='23505'){
+        throw new DatabaseError.DataBaseUniqueConstrainError(e.constraint);
+      }
       throw new DatabaseError.DatabaseQueryError();
     }
   }

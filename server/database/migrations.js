@@ -10,6 +10,10 @@ class DatabaseMigrationManager {
         password_hash VARCHAR(150) NOT NULL
     );
     `,
+      `
+    ALTER TABLE users ADD COLUMN is_email_verified BOOLEAN DEFAULT false;
+
+     `,
     ];
 
     this.downMigrations = [`DROP TABLE IF EXISTS users;`];

@@ -8,7 +8,7 @@ class UserRepository {
       const response = await db.query(query);
       return response;
     } catch (e) {
-      throw new DatabaseQueryError();
+      throw e;
     }
   }
 
@@ -18,7 +18,7 @@ class UserRepository {
       const response = await db.query(query);
       return response;
     } catch (e) {
-      throw new DatabaseQueryError();
+      throw e;
     }
   }
 }

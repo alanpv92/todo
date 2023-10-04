@@ -3,11 +3,17 @@ const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const { UserAlreadyRegistredError } = require("./errors");
 const texts = require("../../constants/texts");
+const { DataBaseUniqueConstrainError } = require("../../database/errors");
 
 class AuthenticationController {
   static resolveError(errorInstance) {
     if (errorInstance instanceof UserAlreadyRegistredError) {
       return texts.userAlreadyRegistredError;
+    }
+    if (errorInstance instanceof DataBaseUniqueConstrainError) {
+      if (errorInstance.constraint === "users_user_name_key") {
+        return texts.userNameIsNotUniqueError;
+      }
     }
     return texts.unknownErrorText;
   }
@@ -42,10 +48,12 @@ class AuthenticationController {
         hashedPassword,
         user_name
       );
-      console.log(insertedData.rows[0].id);
+
       res.json({
         status: "ok",
         data: {
+          user_name: user_name,
+          email: email,
           token: AuthenticationController.generateToken({
             userId: insertedData.rows[0].id,
             email: email,
@@ -53,7 +61,7 @@ class AuthenticationController {
         },
       });
     } catch (e) {
-      console.log(e);
+     
       res.json({
         status: "error",
         message: AuthenticationController.resolveError(e),

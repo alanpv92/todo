@@ -7,14 +7,16 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon app.js",
     "migrate-up": "node database/migrations up",
-    "migrate-down":"node database/migrations down"
+    "migrate-down": "node database/migrations down"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.3"
   },
   "devDependencies": {

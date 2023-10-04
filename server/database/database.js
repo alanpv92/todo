@@ -40,7 +40,10 @@ class Database {
 
     try {
       const data = await this.pool.query(queryString);
-      return data;
+      return {
+        rowCount: data.rowCount,
+        rows: data.rows,
+      };
     } catch (e) {
       console.log(e);
       throw new DatabaseError.DatabaseQueryError();

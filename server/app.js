@@ -1,5 +1,6 @@
 const express = require("express");
 const db = require("./database/database");
+const router = require("./routes/index");
 const { DatabaseConnectionError } = require("./database/errors");
 require("dotenv").config();
 
@@ -8,9 +9,8 @@ async function main() {
   const port = process.env.SERVER_PORT || 5000;
   try {
     db.initDatabaseFromEnv();
-    const data=await db.query("select * from users");
-    console.log(data.row);
-   
+    app.use(express.json())
+    app.use("/v1", router);
     app.listen(port, () => {
       console.log(`server is running at ${port}`);
     });

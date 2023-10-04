@@ -4,12 +4,7 @@ class DatabaseError extends Error {}
 
 class DatabaseConnectionError extends DatabaseError {}
 
-class DatabaseQueryError extends DatabaseError {
-//   constructor(errorText) {
-//     super();
-//     this.message = errorText || Texts.unknownErrorText;
-//   }
-}
+class DatabaseQueryError extends DatabaseError {}
 
 module.exports = {
   DatabaseConnectionError,

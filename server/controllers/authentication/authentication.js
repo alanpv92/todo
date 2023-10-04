@@ -64,8 +64,7 @@ class AuthenticationController {
         },
       });
     } catch (e) {
-      console.log(e)
-      res.json({
+      res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),
       });
@@ -100,7 +99,7 @@ class AuthenticationController {
         },
       });
     } catch (e) {
-      res.json({
+      res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),
       });

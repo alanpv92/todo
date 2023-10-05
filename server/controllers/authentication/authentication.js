@@ -67,6 +67,7 @@ class AuthenticationController {
         data: {
           user_name: user.user_name,
           email: email,
+          userId: user.id,
           is_email_verified: user.is_email_verified,
           token: AuthenticationController.generateToken({
             userId: user.id,
@@ -101,6 +102,7 @@ class AuthenticationController {
       res.json({
         status: "ok",
         data: {
+          userId: insertedData.rows[0].id,
           user_name: user_name,
           email: email,
           token: AuthenticationController.generateToken({
@@ -110,6 +112,8 @@ class AuthenticationController {
         },
       });
     } catch (e) {
+      console.log("i am being called");
+      console.log(e);
       res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),
@@ -129,7 +133,7 @@ class AuthenticationController {
       const otphash = await AuthenticationController.hashPasswordAndOtp(otp);
       await userRepository.insertOtp(userData.rows[0].id, otphash);
 
-      // await mailService.sendMail(email, otp);
+      await mailService.sendMail(email, otp);
 
       res.json({
         status: "ok",

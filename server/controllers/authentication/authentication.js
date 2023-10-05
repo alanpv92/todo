@@ -112,8 +112,7 @@ class AuthenticationController {
         },
       });
     } catch (e) {
-      console.log("i am being called");
-      console.log(e);
+    
       res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),

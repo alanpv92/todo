@@ -32,6 +32,13 @@ class DatabaseMigrationManager {
       ALTER TABLE user_otps ADD CONSTRAINT unique_user_id UNIQUE(user_id) ;
       `,
       ////////////////////////////////////////////////////////////////////
+
+      `
+      ALTER TABLE user_otps ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+      
+      `
+
+      //////////////////////////////////////////////////////////////////////
     ];
 
     this.downMigrations = [

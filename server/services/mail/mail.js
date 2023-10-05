@@ -14,13 +14,13 @@ class MailService {
     });
   }
 
-  async sendMail(to, otp) {
+  async sendMail(to,subject,text) {
     try {
       await this.transport.sendMail({
         from: "todoTest@gmail.com",
         to: to,
-        subject: "otp for registering for todo app",
-        text: `otp is ${otp}`,
+        subject: subject,
+        text: text,
       });
     } catch (e) {
       console.log(e)

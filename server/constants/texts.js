@@ -5,6 +5,7 @@ class ErrorTexts {
   static userHasNotRegistred="user has not yet registred";
   static userHasEnterWrongPassword="password is incorrect";
   static couldNotSendMail="could not send mail";
+  static invaildOtpError="otp is invaild or has expired";
 }
 
 class Texts extends ErrorTexts {}

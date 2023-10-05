@@ -5,6 +5,7 @@ const {
   UserAlreadyRegistredError,
   UserHasNotRegistredError,
   UserHasEnterWrongPasswordError,
+  InvaildOrOtpExpiredError,
 } = require("./errors");
 const texts = require("../../constants/texts");
 const { DataBaseUniqueConstrainError } = require("../../database/errors");
@@ -24,6 +25,9 @@ class AuthenticationController {
     }
     if (errorInstance instanceof UserHasEnterWrongPasswordError) {
       return texts.userHasEnterWrongPassword;
+    }
+    if (errorInstance instanceof InvaildOrOtpExpiredError) {
+      return texts.invaildOtpError;
     }
     if (errorInstance instanceof DataBaseUniqueConstrainError) {
       if (errorInstance.constraint === "users_user_name_key") {
@@ -105,6 +109,7 @@ class AuthenticationController {
           userId: insertedData.rows[0].id,
           user_name: user_name,
           email: email,
+          is_email_verified: false,
           token: AuthenticationController.generateToken({
             userId: insertedData.rows[0].id,
             email: email,
@@ -112,7 +117,6 @@ class AuthenticationController {
         },
       });
     } catch (e) {
-    
       res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),
@@ -132,11 +136,51 @@ class AuthenticationController {
       const otphash = await AuthenticationController.hashPasswordAndOtp(otp);
       await userRepository.insertOtp(userData.rows[0].id, otphash);
 
-      await mailService.sendMail(email, otp);
+      await mailService.sendMail(
+        email,
+        "otp for registering for todo app",
+        `otp is ${otp}`
+      );
 
       res.json({
         status: "ok",
       });
+    } catch (e) {
+      res.status(400).json({
+        status: "error",
+        message: AuthenticationController.resolveError(e),
+      });
+    }
+  }
+
+  async verifyOtpForEmail(req, res) {
+    try {
+      const { id, otp } = req.body;
+      console.log(id);
+      const userOtpData = await userRepository.findUserOtpById(id);
+      if (userOtpData.rowCount === 0) {
+        throw new InvaildOrOtpExpiredError();
+      }
+
+      const createdDate = new Date(userOtpData.rows[0].created_at);
+      const currentDate = new Date();
+      const timePassed = currentDate - createdDate;
+      if (timePassed >= 180000) {
+        await userRepository.deleteInvaildOtp(userOtpData.rows[0].id);
+        throw new InvaildOrOtpExpiredError();
+      } else {
+        const otpHash = userOtpData.rows[0].otp_hash;
+        const isOtpOk = await bcrypt.compare(otp, otpHash);
+        if (isOtpOk) {
+          const user_id = userOtpData.rows[0].user_id;
+          await userRepository.updateUserEmailStatusToVerified(user_id);
+          res.json({
+            status: "ok",
+          });
+        } else {
+          throw new InvaildOrOtpExpiredError();
+        }
+      }
     } catch (e) {
       console.log(e);
       res.status(400).json({

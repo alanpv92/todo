@@ -54,6 +54,33 @@ class AuthenticationController {
     return formattedNum;
   }
 
+  static async sendOtp(email, subject, id) {
+    try {
+      const otp = AuthenticationController.generateRandom4DigitNumber();
+      const otphash = await AuthenticationController.hashPasswordAndOtp(otp);
+      await userRepository.insertOtp(id, otphash);
+
+      await mailService.sendMail(email, subject, `otp is ${otp}`);
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  static checkIfOtpIsVaild(createdAt) {
+    try {
+      const createdDate = new Date(createdAt);
+      const currentDate = new Date();
+      const timePassed = currentDate - createdDate;
+      if (timePassed >= 180000) {
+        return false;
+      } else {
+        return true;
+      }
+    } catch (e) {
+      throw e;
+    }
+  }
+
   async loginUser(req, res) {
     try {
       const { email, password } = req.body;
@@ -132,16 +159,11 @@ class AuthenticationController {
       if (userData.rowCount == 0) {
         throw new UserHasNotRegistredError();
       }
-      const otp = AuthenticationController.generateRandom4DigitNumber();
-      const otphash = await AuthenticationController.hashPasswordAndOtp(otp);
-      await userRepository.insertOtp(userData.rows[0].id, otphash);
-
-      await mailService.sendMail(
+      await AuthenticationController.sendOtp(
         email,
         "otp for registering for todo app",
-        `otp is ${otp}`
+        userData.rows[0].id
       );
-
       res.json({
         status: "ok",
       });
@@ -156,16 +178,15 @@ class AuthenticationController {
   async verifyOtpForEmail(req, res) {
     try {
       const { id, otp } = req.body;
-      console.log(id);
       const userOtpData = await userRepository.findUserOtpById(id);
       if (userOtpData.rowCount === 0) {
         throw new InvaildOrOtpExpiredError();
       }
 
-      const createdDate = new Date(userOtpData.rows[0].created_at);
-      const currentDate = new Date();
-      const timePassed = currentDate - createdDate;
-      if (timePassed >= 180000) {
+      const isOtpVaild = AuthenticationController.checkIfOtpIsVaild(
+        userOtpData.rows[0].created_at
+      );
+      if (!isOtpVaild) {
         await userRepository.deleteInvaildOtp(userOtpData.rows[0].id);
         throw new InvaildOrOtpExpiredError();
       } else {
@@ -182,7 +203,68 @@ class AuthenticationController {
         }
       }
     } catch (e) {
+      res.status(400).json({
+        status: "error",
+        message: AuthenticationController.resolveError(e),
+      });
+    }
+  }
+
+  async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      const userData = await userRepository.findUserByEmail(email);
+
+      if (userData.rowCount == 0) {
+        throw new UserHasNotRegistredError();
+      }
+      await AuthenticationController.sendOtp(
+        email,
+        "otp for reseting password for todo app",
+        userData.rows[0].id
+      );
+      res.json({
+        status: "ok",
+      });
+    } catch (e) {
       console.log(e);
+      res.status(400).json({
+        status: "error",
+        message: AuthenticationController.resolveError(e),
+      });
+    }
+  }
+
+  async verifyOtpForPassword(req, res) {
+    try {
+      const { email, otp, new_password } = req.body;
+      const userOtpData = await userRepository.findUserOtpByEmail(email);
+
+      if (userOtpData.rowCount === 0) {
+        throw new InvaildOrOtpExpiredError();
+      }
+      const isOtpVaild = AuthenticationController.checkIfOtpIsVaild(
+        userOtpData.rows[0].created_at
+      );
+      if (!isOtpVaild) {
+        await userRepository.deleteInvaildOtp(userOtpData.rows[0].id);
+        throw new InvaildOrOtpExpiredError();
+      } else {
+        const otpHash = userOtpData.rows[0].otp_hash;
+        const isOtpOk = await bcrypt.compare(otp, otpHash);
+        if (isOtpOk) {
+          const user_id = userOtpData.rows[0].user_id;
+          const newPasswordHash = await AuthenticationController.hashPasswordAndOtp(new_password);
+          await userRepository.updatePasswordHash(user_id, newPasswordHash);
+          res.json({
+            status: "ok",
+          });
+        } else {
+          throw new InvaildOrOtpExpiredError();
+        }
+      }
+    } catch (e) {
+      console.log(e)
       res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),

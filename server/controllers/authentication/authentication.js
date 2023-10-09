@@ -8,33 +8,23 @@ const {
   InvaildOrOtpExpiredError,
 } = require("./errors");
 const texts = require("../../constants/texts");
-const { DataBaseUniqueConstrainError } = require("../../database/errors");
-const { CouldNotSendMail } = require("../../services/mail/error");
 const mailService = require("../../services/mail/mail");
 
 class AuthenticationController {
   static resolveError(errorInstance) {
-    if (errorInstance instanceof UserAlreadyRegistredError) {
-      return texts.userAlreadyRegistredError;
-    }
-    if (errorInstance instanceof UserHasNotRegistredError) {
-      return texts.userHasNotRegistred;
-    }
-    if (errorInstance instanceof CouldNotSendMail) {
-      return texts.couldNotSendMail;
-    }
-    if (errorInstance instanceof UserHasEnterWrongPasswordError) {
-      return texts.userHasEnterWrongPassword;
-    }
-    if (errorInstance instanceof InvaildOrOtpExpiredError) {
-      return texts.invaildOtpError;
-    }
-    if (errorInstance instanceof DataBaseUniqueConstrainError) {
-      if (errorInstance.constraint === "users_user_name_key") {
-        return texts.userNameIsNotUniqueError;
-      }
-    }
-    return texts.unknownErrorText;
+    const errorTexts = {
+      UserAlreadyRegistredError: texts.userAlreadyRegistredError,
+      UserHasNotRegistredError: texts.userHasNotRegistred,
+      CouldNotSendMail: texts.couldNotSendMail,
+      UserHasEnterWrongPasswordError: texts.userHasEnterWrongPassword,
+      InvaildOrOtpExpiredError: texts.invaildOtpError,
+      DataBaseUniqueConstrainError:
+        errorInstance.constraint === "users_user_name_key"
+          ? texts.userNameIsNotUniqueError
+          : texts.unknownErrorText,
+    };
+
+    return errorTexts[errorInstance.constructor.name] || texts.unknownErrorText;
   }
 
   static generateToken(data) {
@@ -237,7 +227,7 @@ class AuthenticationController {
 
   async verifyOtpForPassword(req, res) {
     try {
-      const { email, otp, new_password } = req.body;
+      const { email, otp, password } = req.body;
       const userOtpData = await userRepository.findUserOtpByEmail(email);
 
       if (userOtpData.rowCount === 0) {
@@ -254,7 +244,8 @@ class AuthenticationController {
         const isOtpOk = await bcrypt.compare(otp, otpHash);
         if (isOtpOk) {
           const user_id = userOtpData.rows[0].user_id;
-          const newPasswordHash = await AuthenticationController.hashPasswordAndOtp(new_password);
+          const newPasswordHash =
+            await AuthenticationController.hashPasswordAndOtp(password);
           await userRepository.updatePasswordHash(user_id, newPasswordHash);
           res.json({
             status: "ok",
@@ -264,7 +255,7 @@ class AuthenticationController {
         }
       }
     } catch (e) {
-      console.log(e)
+      console.log(e);
       res.status(400).json({
         status: "error",
         message: AuthenticationController.resolveError(e),
